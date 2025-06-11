@@ -26,27 +26,29 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Very explicit regex for parsing network interfaces
+            # Robust regex for parsing network interfaces
             pattern = re.compile(
-                r'^\\d+:\\s*(\\w+):.+\\n'  # Interface name
-                r'(?:.*?\\n)*?'            # Optional intermediate lines
-                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic)\\s+(\\w+).*$',  # IP address with interface
+                r'^\\d+:\\s*(\\w+):.+?\\n'  # Interface name
+                r'(?:.*?\\n)*?'             # Optional intermediate lines
+                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic).*$',  # IP address
                 re.MULTILINE | re.DOTALL
             )
             
             interfaces = {}
-            # Directly extract using findall for maximum flexibility
-            matches = pattern.findall(result.stdout)
-            for match in matches:
-                interface_name = match[2]
-                ip_address = match[1]
-                interfaces[interface_name] = ip_address
+            for line in result.stdout.split('\n'):
+                match = re.search(r'^\\d+:\\s*(\\w+):', line)
+                if match:
+                    interface_name = match.group(1)
+                    # Look for IP in the same interface block
+                    ip_match = re.search(r'inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic)', 
+                                         result.stdout, re.MULTILINE)
+                    if ip_match:
+                        interfaces[interface_name] = ip_match.group(1)
             
             return interfaces
         
         except (subprocess.CalledProcessError, FileNotFoundError, AttributeError) as e:
             print(f"Error detecting network interfaces: {e}", file=sys.stderr)
-            print(f"Raw output: {result.stdout if 'result' in locals() else 'No output'}", file=sys.stderr)
             return {}
     
     @staticmethod
