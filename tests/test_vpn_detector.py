@@ -42,7 +42,7 @@ class TestPineappleDetector:
         
         assert len(recommendations) > 0
         assert "Recommended VPN type: wireguard" in recommendations
-        assert "Use strong encryption protocols" in recommendations
+        assert "Use strong encryption protocols (AES-256, ChaCha20)" in recommendations
 
     def test_validate_vpn_security_without_connection(self):
         recommendations = PineappleDetector.validate_vpn_security(None)
