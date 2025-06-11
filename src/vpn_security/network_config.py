@@ -26,13 +26,19 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            print(f"DEBUG: Full IP addr output:\n{result.stdout}", file=sys.stderr)
-            
             interfaces = {}
-            for match in re.finditer(r'^\d+:\s+(\w+):.*\n.*inet\s+(\d+\.\d+\.\d+\.\d+)', result.stdout, re.MULTILINE):
-                interfaces[match.group(1)] = match.group(2)
-            
-            print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
+            lines = result.stdout.split('\n')
+            for i in range(len(lines)):
+                # Flexible regex for interface name and IP
+                interface_match = re.search(r'^\d+:\s+(\w+):', lines[i])
+                if interface_match:
+                    interface = interface_match.group(1)
+                    # Look ahead to next lines for IP address
+                    for j in range(i+1, min(i+4, len(lines))):
+                        ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', lines[j])
+                        if ip_match:
+                            interfaces[interface] = ip_match.group(1)
+                            break
             
             return interfaces
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
