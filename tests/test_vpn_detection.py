@@ -2,7 +2,7 @@
 import pytest
 import sys
 import os
-from unittest.mock import patch  # Use unittest.mock instead of pytest.mock
+from unittest.mock import patch, MagicMock  # Explicit import of MagicMock
 
 # Ensure the main script is in the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -22,7 +22,11 @@ def test_vpn_configuration_detection_return_type():
     Verify the return type of the VPN configuration detection method.
     """
     detector = PineappleDetector()
-    result = detector.detect_vpn_configuration()
+    
+    # Mock VPN configuration detection
+    with patch.object(VPNConfigDetector, 'detect_vpn_connection', 
+                      return_value={'interface': 'tun0', 'ip_address': '10.8.0.1'}):
+        result = detector.detect_vpn_configuration()
     
     # Check return type is dict
     assert isinstance(result, dict), "VPN detection must return a dictionary"
@@ -44,11 +48,16 @@ def test_vpn_detection_handles_non_vpn_scenario():
     Verify VPN detection works correctly when no VPN is active.
     """
     detector = PineappleDetector()
-    result = detector.detect_vpn_configuration()
     
-    # Expected behavior when no VPN is active
-    assert 'active_vpn' in result
-    assert result['active_vpn'] in [True, False], "active_vpn must be a boolean"
+    # Mock no VPN connection
+    with patch.object(VPNConfigDetector, 'detect_vpn_connection', 
+                      return_value=None):
+        result = detector.detect_vpn_configuration()
+        
+        # Expected behavior when no VPN is active
+        assert result['active_vpn'] is False
+        assert result['interface'] == ''
+        assert result['server_ip'] == ''
 
 def test_vpn_type_extraction():
     """
@@ -82,8 +91,7 @@ def test_vpn_security_analysis():
             vpn_result = detector.detect_vpn_configuration()
             
             # Verify security warnings are captured
-            assert 'security_warnings' in vpn_result
-            assert len(vpn_result['security_warnings']) > 0
+            assert vpn_result['security_warnings'] == ['Weak VPN protocol detected']
 
 def test_vpn_detection_integration():
     """
@@ -93,14 +101,28 @@ def test_vpn_detection_integration():
     
     # Simulate different network scenarios
     test_scenarios = [
-        {'interfaces': {'tun0': '10.8.0.1'}, 'expected_active': True},
-        {'interfaces': {'eth0': '192.168.1.100'}, 'expected_active': False}
+        {
+            'detect_vpn_connection_return': {'interface': 'tun0', 'ip_address': '10.8.0.1'},
+            'expected_active': True,
+            'expected_interface': 'tun0',
+            'expected_server_ip': '10.8.0.1'
+        },
+        {
+            'detect_vpn_connection_return': None,
+            'expected_active': False,
+            'expected_interface': '',
+            'expected_server_ip': ''
+        }
     ]
     
     for scenario in test_scenarios:
-        with patch.object(VPNConfigDetector, 'get_network_interfaces', 
-                          return_value=scenario['interfaces']):
+        with patch.object(VPNConfigDetector, 'detect_vpn_connection', 
+                          return_value=scenario['detect_vpn_connection_return']):
             vpn_result = detector.detect_vpn_configuration()
             
             assert vpn_result['active_vpn'] == scenario['expected_active'], \
-                f"Failed to detect VPN status for {scenario['interfaces']}"
+                f"Failed to detect VPN status"
+            assert vpn_result['interface'] == scenario['expected_interface'], \
+                f"Incorrect VPN interface"
+            assert vpn_result['server_ip'] == scenario['expected_server_ip'], \
+                f"Incorrect server IP"
