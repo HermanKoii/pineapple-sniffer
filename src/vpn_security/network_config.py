@@ -1,5 +1,6 @@
 import subprocess
 import re
+import sys
 from typing import Dict, List, Optional
 
 class VPNConfigDetector:
@@ -25,21 +26,17 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
+            print(f"DEBUG: Full IP addr output:\n{result.stdout}", file=sys.stderr)
+            
             interfaces = {}
-            lines = result.stdout.split('\n')
-            for line in lines:
-                # More specific regex for interface name
-                interface_match = re.search(r'^\d+:\s+(\w+):', line)
-                # More specific regex for IP address
-                ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', line)
-                
-                if interface_match and ip_match:
-                    interface = interface_match.group(1)
-                    ip_address = ip_match.group(1)
-                    interfaces[interface] = ip_address
+            for match in re.finditer(r'^\d+:\s+(\w+):.*\n.*inet\s+(\d+\.\d+\.\d+\.\d+)', result.stdout, re.MULTILINE):
+                interfaces[match.group(1)] = match.group(2)
+            
+            print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
             
             return interfaces
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"DEBUG: Error in get_network_interfaces: {e}", file=sys.stderr)
             # Fallback for systems without 'ip' command
             return {}
     
