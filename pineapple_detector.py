@@ -21,9 +21,37 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 class PineappleDetector:
-    # Rest of the previous implementation remains the same...
-
-    # Existing methods remain the same...
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        self.test_domains = [
+            'google.com',
+            'github.com', 
+            'apple.com',
+            'cloudflare.com',
+            'microsoft.com'
+        ]
+        self.dns_servers = {
+            'google': '8.8.8.8',
+            'cloudflare': '1.1.1.1',
+            'current': None
+        }
+        self.results = {}
+        self.threats_detected = []
+        self.warnings = []
+        
+    def log(self, message, level="INFO"):
+        """Log messages with timestamp."""
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        if level == "PASS":
+            print(f"[{timestamp}] \u2705 {message}")
+        elif level == "FAIL":
+            print(f"[{timestamp}] \u274c {message}")
+            self.threats_detected.append(message)
+        elif level == "WARN":
+            print(f"[{timestamp}] \u26a0\ufe0f  {message}")
+            self.warnings.append(message)
+        elif self.verbose or level == "ERROR":
+            print(f"[{timestamp}] {level}: {message}")
 
     def detect_vpn_configuration(self) -> Dict:
         """
@@ -138,4 +166,6 @@ class PineappleDetector:
         # Additional security checks can be added here
         vpn_result['security_warnings'] = warnings
 
-# Rest of the implementation remains the same...
+    # Other existing methods from the original implementation
+
+# Include the rest of the original implementation here...
