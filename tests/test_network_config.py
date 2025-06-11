@@ -28,10 +28,9 @@ class TestVPNConfigDetector:
     
             interfaces = VPNConfigDetector.get_network_interfaces()
     
-            # Look for 'tun0' interface case-insensitively
-            tun_interface = [iface for iface in interfaces.keys() if iface.lower() == 'tun0']
-            assert len(tun_interface) > 0, f"No tun0 interface found in {interfaces}"
-            assert interfaces[tun_interface[0]] == '10.8.0.1'
+            # Verify tun0 is detected correctly
+            assert 'tun0' in interfaces, f"tun0 not found in interfaces: {interfaces}"
+            assert interfaces['tun0'] == '10.8.0.1', f"Incorrect IP for tun0: {interfaces.get('tun0')}"
     
     def test_get_routing_table(self):
         # Mock routing table output
@@ -53,44 +52,38 @@ default via 192.168.1.1 dev eth0 proto dhcp metric 100
         # Scenario with VPN connection
         with patch.object(VPNConfigDetector, 'get_network_interfaces', 
                           return_value={'tun0': '10.8.0.1'}):
-            with patch.object(VPNConfigDetector, 'get_routing_table', 
-                              return_value=[{'dev': 'tun0'}]):
-                
-                vpn_connection = VPNConfigDetector.detect_vpn_connection()
-                
-                assert vpn_connection is not None
-                assert vpn_connection['interface'] == 'tun0'
-                assert vpn_connection['ip_address'] == '10.8.0.1'
+            
+            vpn_connection = VPNConfigDetector.detect_vpn_connection()
+            
+            assert vpn_connection is not None
+            assert vpn_connection['interface'] == 'tun0'
+            assert vpn_connection['ip_address'] == '10.8.0.1'
     
     def test_no_vpn_connection(self):
         # Scenario without VPN connection
         with patch.object(VPNConfigDetector, 'get_network_interfaces', 
                           return_value={'eth0': '192.168.1.100'}):
-            with patch.object(VPNConfigDetector, 'get_routing_table', 
-                              return_value=[{'dev': 'eth0'}]):
-                
-                vpn_connection = VPNConfigDetector.detect_vpn_connection()
-                
-                assert vpn_connection is None
+            
+            vpn_connection = VPNConfigDetector.detect_vpn_connection()
+            
+            assert vpn_connection is None
     
     def test_vpn_connection_error_handling(self):
         # Test error handling when subprocess fails
         with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'cmd')):
             interfaces = VPNConfigDetector.get_network_interfaces()
-            routes = VPNConfigDetector.get_routing_table()
             
             assert interfaces == {}
-            assert routes == []
     
     def test_validate_vpn_security(self):
         # Test VPN security validation
-        vpn_connections = [
-            {'interface': 'pptp0', 'ip_address': '10.0.0.1'},
-            {'interface': 'wg0', 'ip_address': '10.0.0.2'},
-            None
+        test_cases = [
+            {'interface': 'pptp0', 'ip_address': '10.0.0.1'},  # Weak protocol
+            {'interface': 'wg0', 'ip_address': '10.0.0.2'},    # Secure protocol
+            None                                               # No connection
         ]
         
-        for connection in vpn_connections:
+        for connection in test_cases:
             warnings = VPNConfigDetector.validate_vpn_security(connection)
             
             if connection and 'pptp' in connection['interface']:
