@@ -26,24 +26,23 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Robust regex for parsing network interfaces
-            pattern = re.compile(
-                r'^\\d+:\\s*(\\w+):.+?\\n'  # Interface name
-                r'(?:.*?\\n)*?'             # Optional intermediate lines
-                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic).*$',  # IP address
-                re.MULTILINE | re.DOTALL
-            )
-            
             interfaces = {}
-            for line in result.stdout.split('\n'):
-                match = re.search(r'^\\d+:\\s*(\\w+):', line)
-                if match:
-                    interface_name = match.group(1)
-                    # Look for IP in the same interface block
-                    ip_match = re.search(r'inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic)', 
-                                         result.stdout, re.MULTILINE)
-                    if ip_match:
-                        interfaces[interface_name] = ip_match.group(1)
+            
+            # Split the output into interface blocks
+            interface_blocks = result.stdout.split('\n\n')
+            
+            for block in interface_blocks:
+                # Find interface name
+                name_match = re.search(r'^\d+:\s*(\w+):', block, re.MULTILINE)
+                if not name_match:
+                    continue
+                
+                interface_name = name_match.group(1)
+                
+                # Find IP address for global or dynamic interfaces
+                ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+).*?(?:global|dynamic)', block, re.MULTILINE | re.DOTALL)
+                if ip_match:
+                    interfaces[interface_name] = ip_match.group(1)
             
             return interfaces
         
