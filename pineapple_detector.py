@@ -9,11 +9,20 @@ man-in-the-middle attacks, and system vulnerabilities.
 ...previous docstring remains the same...
 """
 
-# Existing imports remain the same...
+# Existing imports
+import subprocess
+import json
+import datetime
+import sys
+import os
+import argparse
 import platform
 import re
+from typing import Dict, List, Optional, Tuple
 
 class PineappleDetector:
+    # Rest of the previous implementation remains the same...
+
     # Existing methods remain the same...
 
     def detect_vpn_configuration(self) -> Dict:
@@ -129,4 +138,4 @@ class PineappleDetector:
         # Additional security checks can be added here
         vpn_result['security_warnings'] = warnings
 
-# Existing main() and other functions remain the same...
+# Rest of the implementation remains the same...
