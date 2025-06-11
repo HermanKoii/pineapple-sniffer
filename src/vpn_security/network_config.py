@@ -26,24 +26,27 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # More robust regex for parsing network interfaces
+            # Very explicit regex for parsing network interfaces
             pattern = re.compile(
                 r'^\\d+:\\s*(\\w+):.+\\n'  # Interface name
-                r'(?:.*\\n)*?'             # Skip lines
-                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*(?:scope\\s+global|scope\\s+dynamic)\\s+(\\w+).*$',  # IP address with interface name
-                re.MULTILINE
+                r'(?:.*?\\n)*?'            # Optional intermediate lines
+                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*?(?:global|dynamic)\\s+(\\w+).*$',  # IP address with interface
+                re.MULTILINE | re.DOTALL
             )
             
             interfaces = {}
-            for match in pattern.finditer(result.stdout):
-                interface_name = match.group(3)
-                ip_address = match.group(2)
+            # Directly extract using findall for maximum flexibility
+            matches = pattern.findall(result.stdout)
+            for match in matches:
+                interface_name = match[2]
+                ip_address = match[1]
                 interfaces[interface_name] = ip_address
             
             return interfaces
         
         except (subprocess.CalledProcessError, FileNotFoundError, AttributeError) as e:
             print(f"Error detecting network interfaces: {e}", file=sys.stderr)
+            print(f"Raw output: {result.stdout if 'result' in locals() else 'No output'}", file=sys.stderr)
             return {}
     
     @staticmethod
