@@ -2,6 +2,7 @@
 import pytest
 import sys
 import os
+from unittest.mock import patch  # Use unittest.mock instead of pytest.mock
 
 # Ensure the main script is in the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -71,11 +72,11 @@ def test_vpn_security_analysis():
     Verify VPN security analysis uses network config validation.
     """
     # Mock VPN connection detection
-    with pytest.mock.patch.object(VPNConfigDetector, 'detect_vpn_connection', 
-                                   return_value={'interface': 'pptp0', 'ip_address': '10.0.0.1'}):
+    with patch.object(VPNConfigDetector, 'detect_vpn_connection', 
+                      return_value={'interface': 'pptp0', 'ip_address': '10.0.0.1'}):
         # Mock VPN security validation
-        with pytest.mock.patch.object(VPNConfigDetector, 'validate_vpn_security', 
-                                       return_value=['Weak VPN protocol detected']):
+        with patch.object(VPNConfigDetector, 'validate_vpn_security', 
+                          return_value=['Weak VPN protocol detected']):
             
             detector = PineappleDetector()
             vpn_result = detector.detect_vpn_configuration()
@@ -97,8 +98,8 @@ def test_vpn_detection_integration():
     ]
     
     for scenario in test_scenarios:
-        with pytest.mock.patch.object(VPNConfigDetector, 'get_network_interfaces', 
-                                       return_value=scenario['interfaces']):
+        with patch.object(VPNConfigDetector, 'get_network_interfaces', 
+                          return_value=scenario['interfaces']):
             vpn_result = detector.detect_vpn_configuration()
             
             assert vpn_result['active_vpn'] == scenario['expected_active'], \
