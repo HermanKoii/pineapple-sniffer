@@ -81,3 +81,19 @@ default via 192.168.1.1 dev eth0 proto dhcp metric 100
             
             assert interfaces == {}
             assert routes == []
+    
+    def test_validate_vpn_security(self):
+        # Test VPN security validation
+        vpn_connections = [
+            {'interface': 'pptp0', 'ip_address': '10.0.0.1'},
+            {'interface': 'wg0', 'ip_address': '10.0.0.2'},
+            None
+        ]
+        
+        for connection in vpn_connections:
+            warnings = VPNConfigDetector.validate_vpn_security(connection)
+            
+            if connection and 'pptp' in connection['interface']:
+                assert len(warnings) > 0, "Should detect weak VPN protocol"
+            else:
+                assert len(warnings) == 0, "Should not raise warnings for secure VPN"

@@ -26,27 +26,25 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Very explicit regex to handle multiple line formats
+            # More robust regex for parsing network interfaces
             pattern = re.compile(
-                r'^(\d+):\s*(\w+):.*\n'  # Interface index and name
-                r'(?:.*\n)*'             # Optional intermediate lines
-                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+).*$',  # Capture IP with flexible formatting
+                r'^\d+:\s*(\w+):.+\n'  # Interface name
+                r'(?:.*\n)*?'           # Skip lines
+                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+).*$',  # IP address
                 re.MULTILINE
             )
             
             interfaces = {}
             for match in pattern.finditer(result.stdout):
-                interface_name = match.group(2)
-                ip_address = match.group(3)
+                interface_name = match.group(1)
+                ip_address = match.group(2)
                 interfaces[interface_name] = ip_address
             
-            print(f"DEBUG: Full output: {result.stdout}", file=sys.stderr)
-            print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
             return interfaces
         
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"DEBUG: Error in get_network_interfaces: {e}", file=sys.stderr)
-            # Fallback for systems without 'ip' command
+        except (subprocess.CalledProcessError, FileNotFoundError, AttributeError) as e:
+            print(f"Error detecting network interfaces: {e}", file=sys.stderr)
+            print(f"Raw output: {result.stdout if 'result' in locals() else 'No output'}", file=sys.stderr)
             return {}
     
     @staticmethod
@@ -106,3 +104,26 @@ class VPNConfigDetector:
                 return route
         
         return None
+
+    @staticmethod
+    def validate_vpn_security(vpn_connection: Optional[Dict[str, str]]) -> List[str]:
+        """
+        Perform security validation for VPN connection.
+        
+        Args:
+            vpn_connection (Optional[Dict[str, str]]): VPN connection details
+        
+        Returns:
+            List of security warnings
+        """
+        if not vpn_connection:
+            return []
+        
+        warnings = []
+        
+        # Check for weak protocols or potential vulnerabilities
+        weak_protocols = ['pptp', 'l2tp']
+        if any(proto in str(vpn_connection).lower() for proto in weak_protocols):
+            warnings.append(f"Weak VPN protocol detected: {vpn_connection.get('interface', 'Unknown')}")
+        
+        return warnings
