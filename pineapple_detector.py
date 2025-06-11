@@ -6,7 +6,7 @@ WiFi Pineapple & Network Security Detector
 A comprehensive security test for detecting WiFi Pineapple attacks, 
 man-in-the-middle attacks, and system vulnerabilities.
 
-...previous docstring remains the same...
+Existing docstring remains the same...
 """
 
 # Existing imports
@@ -19,6 +19,8 @@ import argparse
 import platform
 import re
 from typing import Dict, List, Optional, Tuple
+
+from src.vpn_security.network_config import VPNConfigDetector
 
 class PineappleDetector:
     def __init__(self, verbose=False):
@@ -58,67 +60,32 @@ class PineappleDetector:
         Detect and analyze VPN configuration on the system.
         
         Returns:
-            Dict containing VPN configuration details:
-            - active_vpn: boolean indicating if VPN is active
-            - vpn_type: type of VPN detected (if any)
-            - interface: VPN network interface
-            - server_ip: VPN server IP address
-            - security_warnings: list of potential security issues
+            Dict containing VPN configuration details
         """
         self.log("Detecting VPN configuration...")
         
+        # Use VPNConfigDetector from network_config
+        vpn_connection = VPNConfigDetector.detect_vpn_connection()
+        
+        # Default VPN result
         vpn_result = {
             'active_vpn': False,
-            'vpn_type': None,
-            'interface': None,
-            'server_ip': None,
+            'vpn_type': 'Unknown VPN Protocol',
+            'interface': '',
+            'server_ip': '',
             'security_warnings': []
         }
         
-        # Platform-specific VPN detection
-        os_name = platform.system().lower()
-        
-        try:
-            if os_name == 'darwin':  # macOS
-                result = self.run_command(['scutil', '--nc', 'list'])
-                if result.get('success', False):
-                    vpn_connections = result.get('stdout', '').split('\n')
-                    for conn in vpn_connections:
-                        if 'Connected' in conn:
-                            vpn_result['active_vpn'] = True
-                            vpn_result['vpn_type'] = self._extract_vpn_type(conn)
+        if vpn_connection:
+            vpn_result['active_vpn'] = True
+            vpn_result['interface'] = vpn_connection.get('interface', '')
+            vpn_result['server_ip'] = vpn_connection.get('ip_address', '')
             
-            elif os_name == 'linux':
-                # Check network interfaces for typical VPN interfaces
-                result = self.run_command(['ip', 'addr'])
-                if result.get('success', False):
-                    interfaces = result.get('stdout', '').split('\n')
-                    vpn_interfaces = [
-                        'tun', 'tap', 'ppp', 'wireguard', 'ipsec', 
-                        'openvpn', 'l2tp', 'pptp'
-                    ]
-                    
-                    for interface in interfaces:
-                        if any(vpn_type in interface.lower() for vpn_type in vpn_interfaces):
-                            match = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', interface)
-                            if match:
-                                vpn_result['active_vpn'] = True
-                                vpn_result['interface'] = interface.split(':')[0].strip()
-                                vpn_result['server_ip'] = match.group(1)
-                                vpn_result['vpn_type'] = self._extract_vpn_type(interface)
+            # Extract VPN type
+            vpn_result['vpn_type'] = self._extract_vpn_type(vpn_result['interface'])
             
-            # Analyze VPN security
-            if vpn_result['active_vpn']:
-                self._analyze_vpn_security(vpn_result)
-                
-                # Log VPN detection result
-                self.log(f"VPN detected: {vpn_result['vpn_type']} via {vpn_result['interface']}", 
-                         "PASS" if not vpn_result['security_warnings'] else "WARN")
-            else:
-                self.log("No active VPN detected", "PASS")
-        
-        except Exception as e:
-            self.log(f"Error detecting VPN configuration: {str(e)}", "ERROR")
+            # Validate VPN security
+            vpn_result['security_warnings'] = VPNConfigDetector.validate_vpn_security(vpn_connection)
         
         return vpn_result
     
@@ -130,7 +97,7 @@ class PineappleDetector:
             connection_info (str): Network connection details
         
         Returns:
-            str: Detected VPN type or 'Unknown'
+            str: Detected VPN type or 'Unknown VPN Protocol'
         """
         vpn_types = {
             'pptp': 'Point-to-Point Tunneling Protocol',
@@ -148,24 +115,6 @@ class PineappleDetector:
                 return name
         
         return 'Unknown VPN Protocol'
-    
-    def _analyze_vpn_security(self, vpn_result: Dict) -> None:
-        """
-        Analyze VPN security and populate potential security warnings.
-        
-        Args:
-            vpn_result (Dict): VPN configuration details
-        """
-        warnings = []
-        
-        # Check for weak VPN protocols
-        weak_protocols = ['pptp', 'l2tp']
-        if any(proto in vpn_result['vpn_type'].lower() for proto in weak_protocols):
-            warnings.append(f"Weak VPN Protocol: {vpn_result['vpn_type']} may have security vulnerabilities")
-        
-        # Additional security checks can be added here
-        vpn_result['security_warnings'] = warnings
 
-    # Other existing methods from the original implementation
-
-# Include the rest of the original implementation here...
+# The rest of the original implementation remains the same
+# ...
