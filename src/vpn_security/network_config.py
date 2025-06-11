@@ -28,9 +28,9 @@ class VPNConfigDetector:
             
             # More robust regex for parsing network interfaces
             pattern = re.compile(
-                r'^\d+:\s*(\w+):.+\n'  # Interface name
-                r'(?:.*\n)*?'           # Skip lines
-                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+).*$',  # IP address
+                r'^\\d+:\\s*(\\w+):.+\\n'  # Interface name
+                r'(?:.*\\n)*?'             # Skip lines
+                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*$',  # IP address
                 re.MULTILINE
             )
             
@@ -44,7 +44,6 @@ class VPNConfigDetector:
         
         except (subprocess.CalledProcessError, FileNotFoundError, AttributeError) as e:
             print(f"Error detecting network interfaces: {e}", file=sys.stderr)
-            print(f"Raw output: {result.stdout if 'result' in locals() else 'No output'}", file=sys.stderr)
             return {}
     
     @staticmethod
@@ -85,7 +84,6 @@ class VPNConfigDetector:
             Dictionary with VPN connection details, or None if no VPN detected.
         """
         interfaces = cls.get_network_interfaces()
-        routes = cls.get_routing_table()
         
         # Common VPN interface names and checks
         vpn_interface_keywords = ['tun', 'tap', 'ppp', 'wg', 'vpn']
@@ -97,11 +95,6 @@ class VPNConfigDetector:
                     'interface': interface,
                     'ip_address': ip
                 }
-        
-        # Check routing table for potential VPN routes
-        for route in routes:
-            if any(keyword in str(route).lower() for keyword in vpn_interface_keywords):
-                return route
         
         return None
 
