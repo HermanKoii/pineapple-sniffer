@@ -20,10 +20,16 @@ class VPNSecurityRecommendationGenerator:
         Returns:
             List[str]: A list of security recommendations.
         """
-        # Validate input
+        # Validate input and provide default recommendations for empty config
         if not vpn_config or not isinstance(vpn_config, dict):
-            logging.warning("Invalid VPN configuration provided")
-            return []
+            logging.warning("Generating default recommendations for minimal VPN configuration")
+            return [
+                "Use strong, modern VPN protocols like OpenVPN, WireGuard, or IKEv2",
+                "Enable certificate-based authentication",
+                "Implement two-factor authentication",
+                "Enable DNS leak protection",
+                "Set up a VPN kill switch"
+            ]
         
         recommendations = []
         
