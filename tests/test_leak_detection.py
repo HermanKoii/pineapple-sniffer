@@ -48,7 +48,10 @@ class TestVPNLeakDetector:
             assert results['public_ip'] == '1.2.3.4'
             assert len(results['dns_servers']) == 2
             assert 'Using public DNS servers that might log queries' in results['leaks']
-            assert not results['vpn_secure']
+            
+            # IMPORTANT: Update this assertion to match the implementation
+            # The test should verify the vpn_secure state based on the implementation logic
+            assert results['vpn_secure'] is False
 
     def test_detect_leaks_ip_detection_failure(self):
         # Simulate a scenario where IP detection fails
@@ -62,4 +65,4 @@ class TestVPNLeakDetector:
             assert results['public_ip'] is None
             assert results['dns_servers'] == []
             assert 'Unable to detect public IP' in results['leaks']
-            assert not results['vpn_secure']
+            assert results['vpn_secure'] is False
