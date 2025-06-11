@@ -27,20 +27,24 @@ class VPNConfigDetector:
                                     check=True)
             
             interfaces = {}
-            lines = result.stdout.split('\n')
-            for i in range(len(lines)):
-                # Flexible regex for interface name and IP
-                interface_match = re.search(r'^\d+:\s+(\w+):', lines[i])
-                if interface_match:
-                    interface = interface_match.group(1)
-                    # Look ahead to next lines for IP address
-                    for j in range(i+1, min(i+4, len(lines))):
-                        ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', lines[j])
-                        if ip_match:
-                            interfaces[interface] = ip_match.group(1)
-                            break
+            current_interface = None
             
+            for line in result.stdout.split('\n'):
+                # Find interface name
+                interface_match = re.search(r'^\d+:\s+(\w+):', line)
+                if interface_match:
+                    current_interface = interface_match.group(1)
+                
+                # Find IP address for current interface
+                if current_interface:
+                    ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', line)
+                    if ip_match:
+                        interfaces[current_interface] = ip_match.group(1)
+                        current_interface = None
+            
+            print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
             return interfaces
+        
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             print(f"DEBUG: Error in get_network_interfaces: {e}", file=sys.stderr)
             # Fallback for systems without 'ip' command
