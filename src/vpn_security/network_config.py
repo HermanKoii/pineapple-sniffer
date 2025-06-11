@@ -30,7 +30,7 @@ class VPNConfigDetector:
             pattern = re.compile(
                 r'^\\d+:\\s*(\\w+):.+\\n'  # Interface name
                 r'(?:.*\\n)*?'             # Skip lines
-                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*global\\s+(\\w+).*$',  # IP address with interface name
+                r'\\s*inet\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+).*(?:scope\\s+global|scope\\s+dynamic)\\s+(\\w+).*$',  # IP address with interface name
                 re.MULTILINE
             )
             
@@ -44,7 +44,6 @@ class VPNConfigDetector:
         
         except (subprocess.CalledProcessError, FileNotFoundError, AttributeError) as e:
             print(f"Error detecting network interfaces: {e}", file=sys.stderr)
-            print(f"Raw output: {result.stdout if 'result' in locals() else 'No output'}", file=sys.stderr)
             return {}
     
     @staticmethod
