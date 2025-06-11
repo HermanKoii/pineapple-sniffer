@@ -5,9 +5,14 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+<<<<<<< HEAD
 .env
 .venv/
 venv/
+=======
+.venv/
+.env
+>>>>>>> pr-2-souravg77-pineapple-sniffer
 dist/
 build/
 *.egg-info/
