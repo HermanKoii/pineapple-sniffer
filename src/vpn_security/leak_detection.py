@@ -1,7 +1,7 @@
 import socket
 import subprocess
 import ipaddress
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Any
 
 class VPNLeakDetector:
     """
