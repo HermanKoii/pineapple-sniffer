@@ -30,30 +30,22 @@ class VPNConfigDetector:
             interface_pattern = re.compile(
                 r'^(\d+):\s*(\w+):.+\n'     # Interface index and name
                 r'(?:.*\n)*?'               # Optional intermediate lines
-                r'\s*inet\s+([\d.]+/\d+)',  # Capture IP address with subnet
+                r'\s*inet\s+([\d.]+)',      # Capture IP address
                 re.MULTILINE
             )
             
             interfaces = {}
             for match in interface_pattern.finditer(result.stdout):
                 interface_name = match.group(2)
-                ip_address = match.group(3).split('/')[0]  # Extract IP without subnet
-                
-                # Additional debug info
-                print(f"DEBUG: Found interface {interface_name} with IP {ip_address}", file=sys.stderr)
+                ip_address = match.group(3)
                 
                 interfaces[interface_name] = ip_address
             
-            # Additional debug output
-            print(f"DEBUG: Total interfaces found: {len(interfaces)}", file=sys.stderr)
-            print(f"DEBUG: Full interfaces dict: {interfaces}", file=sys.stderr)
-            
             return interfaces
         
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"DEBUG: Error in get_network_interfaces: {e}", file=sys.stderr)
-            # Fallback for systems without 'ip' command or during testing
-            return {'lo': '127.0.0.1', 'eth0': '192.168.1.100', 'tun0': '10.8.0.1'}
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Return empty dict on error to match test expectations
+            return {}
     
     @staticmethod
     def get_routing_table() -> List[Dict[str, str]]:
@@ -82,6 +74,7 @@ class VPNConfigDetector:
             
             return routes
         except (subprocess.CalledProcessError, FileNotFoundError):
+            # Return empty list on error to match test expectations
             return []
     
     @classmethod
