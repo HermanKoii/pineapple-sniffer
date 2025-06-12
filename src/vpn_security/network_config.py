@@ -26,19 +26,19 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Refined regex to capture network interfaces and IPs
-            pattern = re.compile(
-                r'^\d+:\s*(\w+).*\n'                   # Interface name
-                r'(?:.*\n)*'                           # Optional intermediate lines
-                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+)/\d+', # IP address with subnet mask
-                re.MULTILINE
-            )
-            
+            # Parse output manually
             interfaces = {}
-            for match in pattern.finditer(result.stdout):
-                interface_name = match.group(1)
-                ip_address = match.group(2)
-                interfaces[interface_name] = ip_address
+            current_interface = None
+            for line in result.stdout.split('\n'):
+                # Match interface line
+                interface_match = re.match(r'^\d+:\s*(\w+):', line)
+                if interface_match:
+                    current_interface = interface_match.group(1)
+                
+                # Match IP address
+                ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)/\d+', line)
+                if current_interface and ip_match:
+                    interfaces[current_interface] = ip_match.group(1)
             
             print(f"DEBUG: Full output: {result.stdout}", file=sys.stderr)
             print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
