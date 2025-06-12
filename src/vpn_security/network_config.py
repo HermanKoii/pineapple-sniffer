@@ -28,7 +28,7 @@ class VPNConfigDetector:
             
             # Comprehensive regex to handle various 'ip addr' output formats
             interface_pattern = re.compile(
-                r'^(\d+):\s*(\w+):.+\n'     # Interface index and name
+                r'^\d+:\s*(\w+):.*\n'      # Interface name
                 r'(?:.*\n)*?'               # Optional intermediate lines
                 r'\s*inet\s+([\d.]+)',      # Capture IP address
                 re.MULTILINE
@@ -36,8 +36,8 @@ class VPNConfigDetector:
             
             interfaces = {}
             for match in interface_pattern.finditer(result.stdout):
-                interface_name = match.group(2)
-                ip_address = match.group(3)
+                interface_name = match.group(1)
+                ip_address = match.group(2)
                 
                 interfaces[interface_name] = ip_address
             
