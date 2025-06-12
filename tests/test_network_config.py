@@ -5,8 +5,10 @@ from src.vpn_security.network_config import VPNConfigDetector
 
 class TestVPNConfigDetector:
     def test_get_network_interfaces(self):
-        # Mock subprocess to return predefined output
-        mock_output = """
+        """
+        Verify network interfaces detection works correctly.
+        """
+        mock_output = """\
     1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
         link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
         inet 127.0.0.1/8 scope host lo
@@ -22,7 +24,7 @@ class TestVPNConfigDetector:
     """
     
         with patch('subprocess.run') as mock_run:
-            # Create a MagicMock object with a stdout attribute
+            # Simulate successful subprocess run
             mock_run.return_value.stdout = mock_output
             mock_run.return_value.check = True
     
@@ -31,11 +33,13 @@ class TestVPNConfigDetector:
             # Look for 'tun0' interface case-insensitively
             tun_interface = [iface for iface in interfaces.keys() if iface.lower() == 'tun0']
             assert len(tun_interface) > 0, f"No tun0 interface found in {interfaces}"
-            assert interfaces[tun_interface[0]] == '10.8.0.1'
+            assert interfaces['tun0'] == '10.8.0.1'
     
     def test_get_routing_table(self):
-        # Mock routing table output
-        mock_output = """
+        """
+        Test routing table retrieval.
+        """
+        mock_output = """\
 default via 192.168.1.1 dev eth0 proto dhcp metric 100 
 10.8.0.0/24 dev tun0 proto kernel scope link src 10.8.0.1 
 192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.100 metric 100 
@@ -50,11 +54,15 @@ default via 192.168.1.1 dev eth0 proto dhcp metric 100
             assert any('tun0' in str(route) for route in routes)
     
     def test_detect_vpn_connection(self):
-        # Scenario with VPN connection
+        """
+        Test VPN connection detection.
+        """
         with patch.object(VPNConfigDetector, 'get_network_interfaces', 
-                          return_value={'tun0': '10.8.0.1'}):
+                          return_value={'tun0': '10.8.0.1'}, 
+                          autospec=True):
             with patch.object(VPNConfigDetector, 'get_routing_table', 
-                              return_value=[{'dev': 'tun0'}]):
+                              return_value=[{'dev': 'tun0'}], 
+                              autospec=True):
                 
                 vpn_connection = VPNConfigDetector.detect_vpn_connection()
                 
@@ -63,21 +71,28 @@ default via 192.168.1.1 dev eth0 proto dhcp metric 100
                 assert vpn_connection['ip_address'] == '10.8.0.1'
     
     def test_no_vpn_connection(self):
-        # Scenario without VPN connection
+        """
+        Test scenario without a VPN connection.
+        """
         with patch.object(VPNConfigDetector, 'get_network_interfaces', 
-                          return_value={'eth0': '192.168.1.100'}):
+                          return_value={'eth0': '192.168.1.100'}, 
+                          autospec=True):
             with patch.object(VPNConfigDetector, 'get_routing_table', 
-                              return_value=[{'dev': 'eth0'}]):
+                              return_value=[{'dev': 'eth0'}], 
+                              autospec=True):
                 
                 vpn_connection = VPNConfigDetector.detect_vpn_connection()
                 
                 assert vpn_connection is None
     
     def test_vpn_connection_error_handling(self):
-        # Test error handling when subprocess fails
+        """
+        Test error handling when subprocess fails.
+        """
         with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'cmd')):
+            # Expect empty dict on subprocess failure
             interfaces = VPNConfigDetector.get_network_interfaces()
-            routes = VPNConfigDetector.get_routing_table()
+            assert interfaces == {}, "Expected empty dict on subprocess failure"
             
-            assert interfaces == {}
-            assert routes == []
+            routes = VPNConfigDetector.get_routing_table()
+            assert routes == [], "Expected empty list on subprocess failure"
