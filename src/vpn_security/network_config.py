@@ -28,24 +28,48 @@ class VPNConfigDetector:
             
             # Comprehensive regex to handle various 'ip addr' output formats
             interface_pattern = re.compile(
-                r'^\d+:\s*(\w+):.*\n'      # Interface name
-                r'(?:.*\n)*?'               # Optional intermediate lines
-                r'\s*inet\s+([\d.]+)',      # Capture IP address
+                r'^(\d+):\s*(\w+):.*\n'          # Interface index and name
+                r'(?:.*\n)*?'                    # Optional intermediate lines
+                r'\s*inet\s+([\d.]+/\d+)',       # Capture IP address
                 re.MULTILINE
             )
             
-            interfaces = {}
-            for match in interface_pattern.finditer(result.stdout):
-                interface_name = match.group(1)
-                ip_address = match.group(2)
-                
-                interfaces[interface_name] = ip_address
-            
-            return interfaces
+            # Explicit method to parse output
+            return VPNConfigDetector._parse_interfaces(result.stdout)
         
         except (subprocess.CalledProcessError, FileNotFoundError):
             # Return empty dict on error to match test expectations
             return {}
+    
+    @staticmethod
+    def _parse_interfaces(stdout: str) -> Dict[str, str]:
+        """
+        Parse network interface details from ip addr output.
+        
+        Args:
+            stdout (str): Raw output from 'ip addr' command
+        
+        Returns:
+            Dict of interface names and IP addresses
+        """
+        interfaces = {}
+        
+        # Split output into lines for manual parsing
+        lines = stdout.split('\n')
+        current_interface = None
+        
+        for line in lines:
+            # Look for interface definition line
+            interface_match = re.match(r'^\d+:\s*(\w+):', line)
+            if interface_match:
+                current_interface = interface_match.group(1)
+            
+            # Look for IP address
+            ip_match = re.search(r'inet\s+([\d.]+)', line)
+            if current_interface and ip_match:
+                interfaces[current_interface] = ip_match.group(1)
+        
+        return interfaces
     
     @staticmethod
     def get_routing_table() -> List[Dict[str, str]]:
