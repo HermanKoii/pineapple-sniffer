@@ -26,11 +26,11 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Very explicit regex to handle multiple line formats
+            # Improved regex to handle complex 'ip addr' output
             pattern = re.compile(
-                r'^(\d+):\s*(\w+):.*\n'  # Interface index and name
-                r'(?:.*\n)*'             # Optional intermediate lines
-                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+).*$',  # Capture IP with flexible formatting
+                r'^(\d+):\s*(\w+):.+\n'  # Interface index and name
+                r'(?:.*\n)*?'             # Optional intermediate lines
+                r'\s*inet\s+([\d.]+)',    # Capture IP address
                 re.MULTILINE
             )
             
@@ -40,8 +40,6 @@ class VPNConfigDetector:
                 ip_address = match.group(3)
                 interfaces[interface_name] = ip_address
             
-            print(f"DEBUG: Full output: {result.stdout}", file=sys.stderr)
-            print(f"DEBUG: Detected interfaces: {interfaces}", file=sys.stderr)
             return interfaces
         
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
