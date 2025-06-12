@@ -26,11 +26,11 @@ class VPNConfigDetector:
                                     text=True, 
                                     check=True)
             
-            # Simplified regex to capture network interfaces and IPs
+            # Refined regex to capture network interfaces and IPs
             pattern = re.compile(
-                r'^\d+:\s*(\w+).*\n'  # Interface name
-                r'(?:.*\n)*'           # Optional intermediate lines
-                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+)',  # IP address capture
+                r'^\d+:\s*(\w+).*\n'                   # Interface name
+                r'(?:.*\n)*'                           # Optional intermediate lines
+                r'\s*inet\s+(\d+\.\d+\.\d+\.\d+)/\d+', # IP address with subnet mask
                 re.MULTILINE
             )
             
